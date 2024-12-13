@@ -1,0 +1,21 @@
+[package]
+name = "app_template"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+configparser = "3.1"
+fastrand = "2.1"
+glam = "0.29"
+lazy_static = "1.5.0"
+speedy2d = { version = "2.1", git="https://github.com/kirinokirino/speedy2d", default-features = false, features = ["windowing-wayland", "shapes",  "windowing", "image-loading", "image-png"] }
+strum = { version = "0.26", featuers = ["derive"]}
+strum_macros = "0.26"
+
+[profile.dev]
+codegen-units = 1
+
+[profile.release]
+codegen-units = 1
