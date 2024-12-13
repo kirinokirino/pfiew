@@ -15,8 +15,6 @@ mod config;
 use config::Config;
 
 mod game;
-mod robot;
-mod spritesheet;
 
 fn main() {
     let config = Config::new("config.ini");
@@ -25,7 +23,7 @@ fn main() {
     let window = Window::new_with_options(
         &config.title,
         WindowCreationOptions::new_windowed(window_pixels, Some(WindowPosition::Center))
-            .with_decorations(false)
+            .with_decorations(true)
             .with_transparent(false),
     )
     .expect("Wasn't able to create a window!");
