@@ -6,6 +6,7 @@ use std::error::Error;
 pub struct Config {
     path: Option<String>,
     pub title: String,
+    pub input: String,
     pub sleep_ms_per_frame: u64,
     pub window_width: u32,
     pub window_height: u32,
@@ -29,6 +30,9 @@ impl Config {
             Some(path) => {
                 if ini.load(path).is_ok() {
                     let default_section = "default";
+                    if let Some(input) = ini.get(default_section, "input") {
+                        self.input = input;
+                    }
                     if let Some(title) = ini.get(default_section, "title") {
                         self.title = title;
                     }
@@ -53,6 +57,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             path: None,
+            input: "assets/folder".to_string(),
             title: "FLOATING".to_string(),
             sleep_ms_per_frame: 5,
             window_width: 640,
