@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use speedy2d::image::{ImageHandle, ImageSmoothingMode};
-use speedy2d::window::VirtualKeyCode;
+use speedy2d::window::{MouseButton, VirtualKeyCode};
 use speedy2d::Graphics2D;
 
 use glam::{UVec2, Vec2};
@@ -69,8 +69,12 @@ impl Game {
 
     pub fn input(&mut self, viewport_size: UVec2, mouse: &Mouse, keyboard: &Keyboard) {
         self.viewport_size = viewport_size;
+        let mouse_delta = mouse.position - self.mouse;
         self.mouse = mouse.position;
-        self.offset.y = (mouse.scroll_lines * 20.0) as f32;
+        if mouse.pressed.contains(&MouseButton::Left) {
+            self.offset += mouse_delta;
+        }
+        //(mouse.scroll_lines * 20.0) as f32;
         // if keyboard.just_pressed.is_empty() {
         //     println!("nothing pressed");
         // } else {
