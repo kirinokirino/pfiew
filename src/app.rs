@@ -46,7 +46,7 @@ impl App {
         }
         self.input();
 
-        self.update();
+        self.update(graphics);
 
         self.draw(graphics);
         self.current_frame += 1;
@@ -63,8 +63,8 @@ impl App {
             .input(self.viewport_size, &self.mouse, &self.keyboard);
     }
 
-    pub fn update(&mut self) {
-        self.game.update(self.current_frame);
+    pub fn update(&mut self, graphics: &mut Graphics2D) {
+        self.game.update(graphics, self.current_frame);
         self.keyboard.clear();
     }
 
@@ -230,7 +230,7 @@ pub struct Mouse {
     pub position: Vec2,
     grabbed: bool,
     pressed: Vec<MouseButton>,
-    scroll_lines: f64,
+    pub scroll_lines: f64,
 }
 
 impl Mouse {
