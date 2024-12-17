@@ -45,6 +45,10 @@ impl App {
             self.setup(graphics);
         }
         self.input();
+        if self.keyboard.pressed.contains(&VirtualKeyCode::Escape) {
+            helper.terminate_loop();
+            return;
+        }
 
         self.update(graphics);
 
