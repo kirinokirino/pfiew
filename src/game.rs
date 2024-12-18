@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use speedy2d::image::{ImageHandle, ImageSmoothingMode};
 use speedy2d::window::{MouseButton, VirtualKeyCode};
-use speedy2d::Graphics2D;
+use speedy2d::{Graphics2D, Rect};
 
 use glam::{UVec2, Vec2};
 use walkdir::WalkDir;
@@ -26,6 +26,7 @@ pub struct Game {
     images: Vec<ImageStatus>,
     selected: usize,
     offset: Vec2,
+    scale: f32,
 
     mouse: Vec2,
 
@@ -57,6 +58,7 @@ impl Game {
             images,
             selected: 0,
             offset: Vec2::new(0.0, 0.0),
+            scale: 1.0,
 
             mouse: Vec2::new(0.0, 0.0),
 
@@ -74,12 +76,7 @@ impl Game {
         if mouse.pressed.contains(&MouseButton::Left) {
             self.offset += mouse_delta;
         }
-        //(mouse.scroll_lines * 20.0) as f32;
-        // if keyboard.just_pressed.is_empty() {
-        //     println!("nothing pressed");
-        // } else {
-        //     dbg!(&keyboard.just_pressed);
-        // }
+        self.scale = calculate_scale(mouse.scroll_lines);
         if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
             self.selected += 1;
             println!("Selecting image {}", self.selected);
@@ -114,8 +111,31 @@ impl Game {
         if let Some(image) = self.images.get(self.selected) {
             match image {
                 ImageStatus::Pending(path_buf) => (),
-                ImageStatus::Ready(image_handle) => graphics.draw_image(self.offset, image_handle),
+                ImageStatus::Ready(image_handle) => {
+                    //graphics.draw_image(self.offset, image_handle);
+                    let pos = self.offset;
+                    let size = image_handle.size();
+                    let scaled = Vec2::new(size.x as f32 * self.scale, size.y as f32 * self.scale);
+                    graphics.draw_rectangle_image(Rect::new(pos, scaled + pos), image_handle);
+                }
             };
         }
     }
+}
+
+fn calculate_scale(mut scroll_lines: f64) -> f32 {
+    let zoom_speed = 0.95;
+    let mut value = 1.0;
+    if scroll_lines > 0.0 {
+        while scroll_lines > 0.5 {
+            value *= zoom_speed;
+            scroll_lines -= 1.0;
+        }
+    } else if scroll_lines < 0.0 {
+        while scroll_lines < -0.5 {
+            value /= zoom_speed;
+            scroll_lines += 1.0;
+        }
+    }
+    value
 }
