@@ -2,6 +2,8 @@
 #![allow(clippy::cast_precision_loss)]
 #![windows_subsystem = "windows"]
 
+use std::env::args;
+
 use speedy2d::{
     window::{WindowCreationOptions, WindowPosition, WindowSize},
     Window,
@@ -17,7 +19,17 @@ use config::Config;
 mod game;
 
 fn main() {
-    let config = Config::new("config.ini");
+    let mut config = Config::new("config.ini");
+    let args: Vec<String> = args().skip(1).collect();
+    if !args.is_empty() {
+        let arg = &args[0];
+        if arg.contains("--input=") {
+            let (_before, after) = arg.split_once("--input=").unwrap();
+            let (value, _after) = after.split_once(' ').unwrap_or((after, ""));
+            value.clone_into(&mut config.input);
+        }
+    }
+
     let window_size = UVec2::new(config.window_width, config.window_height);
     let window_pixels = WindowSize::PhysicalPixels(window_size);
     let window = Window::new_with_options(

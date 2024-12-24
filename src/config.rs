@@ -3,6 +3,7 @@ use configparser::ini::Ini;
 use std::default::Default;
 use std::error::Error;
 
+#[derive(Debug)]
 pub struct Config {
     path: Option<String>,
     pub title: String,
