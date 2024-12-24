@@ -39,11 +39,14 @@ impl Game {
     pub fn new(config: Config) -> Self {
         let viewport_size = UVec2::new(config.window_width, config.window_height);
         let mut images = Vec::new();
-        let paths: Vec<&str> = config.input.split_whitespace().collect();
+        let paths: Vec<&str> = vec![&config.input];
+        println!("Reading {} paths", paths.len());
         for path in paths {
+            println!("{path}");
             for entry in WalkDir::new(path)
                 .follow_links(true)
                 .max_depth(1)
+                .sort_by_file_name()
                 .into_iter()
                 .filter_map(|e| e.ok())
             {
@@ -87,6 +90,7 @@ impl Game {
         let selected_image = &self.images[self.selected];
         match selected_image {
             ImageStatus::Pending(path_buf) => {
+                println!("Loading image {path_buf:?}");
                 let image_handle = graphics.create_image_from_file_path(
                     None,
                     ImageSmoothingMode::Linear,

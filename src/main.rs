@@ -25,8 +25,7 @@ fn main() {
         let arg = &args[0];
         if arg.contains("--input=") {
             let (_before, after) = arg.split_once("--input=").unwrap();
-            let (value, _after) = after.split_once(' ').unwrap_or((after, ""));
-            value.clone_into(&mut config.input);
+            after.clone_into(&mut config.input);
         }
     }
 
