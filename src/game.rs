@@ -12,11 +12,15 @@ mod camera;
 use crate::game::camera::Camera;
 
 mod world;
-use crate::game::world::World;
+use crate::game::world::{EntityId, World};
+
+mod loader;
+use crate::game::loader::Loader;
 
 pub struct Game {
     config: Config,
     world: World,
+    loader: Loader,
 
     selected: usize,
     camera: Camera,
@@ -52,6 +56,7 @@ impl Game {
         Self {
             config,
             world,
+            loader: Loader::new(),
             selected: 0,
             camera: Camera::new(),
 
@@ -82,16 +87,11 @@ impl Game {
     }
 
     pub fn update(&mut self, graphics: &mut Graphics2D, current_frame: u64) {
-        if let None = &self.world.get_image(self.selected) {
-            if let Some(path_buf) = &self.world.get_path(self.selected) {
-                println!("Loading image {path_buf:?}");
-                if let Ok(image) =
-                    graphics.create_image_from_file_path(None, ImageSmoothingMode::Linear, path_buf)
-                {
-                    self.world.insert_image(self.selected, image);
-                }
-            }
+        if self.world.get_image(self.selected).is_none() {
+            self.loader.load(self.selected);
         }
+
+        self.loader.update(&mut self.world, graphics);
     }
 
     pub fn draw(&self, graphics: &mut Graphics2D) {

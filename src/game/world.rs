@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use speedy2d::image::ImageHandle;
 
-type EntityId = usize;
+pub type EntityId = usize;
 
 pub struct World {
     next_id: EntityId,
@@ -25,7 +25,7 @@ impl World {
     pub fn insert_image(&mut self, id: EntityId, image: ImageHandle) {
         self.images.insert(id, image);
     }
-    
+
     pub fn get_path(&self, id: EntityId) -> Option<&PathBuf> {
         self.assets.get(&id)
     }
