@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use speedy2d::image::{ImageHandle, ImageSmoothingMode};
@@ -13,20 +14,11 @@ use crate::config::Config;
 mod camera;
 use crate::game::camera::Camera;
 
-enum ImageStatus {
-    Pending(PathBuf),
-    Ready(ImageHandle),
-}
-
-impl ImageStatus {
-    pub fn new(path_to_load: PathBuf) -> Self {
-        Self::Pending(path_to_load)
-    }
-}
-
 pub struct Game {
     config: Config,
-    images: Vec<ImageStatus>,
+    image_paths: Vec<PathBuf>,
+    loaded_images: HashMap<usize, ImageHandle>,
+
     selected: usize,
     camera: Camera,
 
@@ -40,7 +32,7 @@ pub struct Game {
 impl Game {
     pub fn new(config: Config) -> Self {
         let viewport_size = UVec2::new(config.window_width, config.window_height);
-        let mut images = Vec::new();
+        let mut image_paths = Vec::new();
         let paths: Vec<&str> = vec![&config.input];
         println!("Reading {} paths", paths.len());
         for path in paths {
@@ -53,14 +45,15 @@ impl Game {
                 .filter_map(|e| e.ok())
             {
                 if entry.file_type().is_file() {
-                    images.push(ImageStatus::new(entry.into_path()));
+                    image_paths.push(entry.into_path());
                 }
             }
         }
 
         Self {
             config,
-            images,
+            image_paths,
+            loaded_images: HashMap::new(),
             selected: 0,
             camera: Camera::new(),
 
@@ -82,7 +75,7 @@ impl Game {
         self.camera.handle_input(mouse, &mouse_delta, scroll_delta, keyboard);
         if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
             self.selected += 1;
-            if self.selected >= self.images.len() {
+            if self.selected >= self.image_paths.len() {
                 self.selected = 0;
             }
             println!("Selecting image {}", self.selected);
@@ -90,20 +83,16 @@ impl Game {
     }
 
     pub fn update(&mut self, graphics: &mut Graphics2D, current_frame: u64) {
-        let selected_image = &self.images[self.selected];
-        match selected_image {
-            ImageStatus::Pending(path_buf) => {
+        if let None = &self.loaded_images.get(&self.selected) {
+                let path_buf = &self.image_paths[self.selected];
                 println!("Loading image {path_buf:?}");
-                let image_handle = graphics.create_image_from_file_path(
+                if let Ok(image) = graphics.create_image_from_file_path(
                     None,
                     ImageSmoothingMode::Linear,
                     path_buf,
-                );
-                if let Ok(image) = image_handle {
-                    self.images[self.selected] = ImageStatus::Ready(image);
+                ){
+                    self.loaded_images.insert(self.selected, image);
                 }
-            }
-            ImageStatus::Ready(image_handle) => (),
         }
     }
 
@@ -115,16 +104,11 @@ impl Game {
         //     graphics.draw_line(self.mouse, center, 2.0, c);
         //     robot.draw(&Rect::new(center, center + Vec2::new(50.0, 50.0)), graphics);
         // }
-        if let Some(image) = self.images.get(self.selected) {
-            match image {
-                ImageStatus::Pending(path_buf) => (),
-                ImageStatus::Ready(image_handle) => {
-                    //graphics.draw_image(self.offset, image_handle);
-                    let size = image_handle.size();
-                    let bounds = Rect::new(Vec2::ZERO, Vec2::new(size.x as f32, size.y as f32));
-                    graphics.draw_rectangle_image(self.camera.transform(&bounds), image_handle);
-                }
-            };
-        }
+
+        if let Some(image_handle) = &self.loaded_images.get(&self.selected) {
+            let size = image_handle.size();
+            let bounds = Rect::new(Vec2::ZERO, Vec2::new(size.x as f32, size.y as f32));
+            graphics.draw_rectangle_image(self.camera.transform(&bounds), image_handle);
+        };
     }
 }
