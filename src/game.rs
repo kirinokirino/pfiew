@@ -82,6 +82,9 @@ impl Game {
         self.camera.handle_input(mouse, &mouse_delta, scroll_delta, keyboard);
         if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
             self.selected += 1;
+            if self.selected >= self.images.len() {
+                self.selected = 0;
+            }
             println!("Selecting image {}", self.selected);
         }
     }
