@@ -1,6 +1,6 @@
 use glam::Vec2;
-use speedy2d::Rect;
 use speedy2d::window::MouseButton;
+use speedy2d::Rect;
 
 use crate::app::{Keyboard, Mouse};
 
@@ -42,12 +42,26 @@ impl Camera {
         zoom_speed.powf(scroll_lines as f32)
     }
 
-    pub fn handle_input(&mut self, mouse: &Mouse, mouse_delta: &Vec2, scroll_delta: f64, _keyboard: &Keyboard) {
+    pub fn handle_input(
+        &mut self,
+        mouse: &Mouse,
+        mouse_delta: &Vec2,
+        scroll_delta: f64,
+        _keyboard: &Keyboard,
+    ) {
         if mouse.pressed.contains(&MouseButton::Left) {
             self.offset += *mouse_delta;
         }
-    
+
         let scale_change = Self::calculate_scale(scroll_delta);
-        self.scale *= scale_change;
+        if scroll_delta != 0.0 {
+            let mouse_world_before = self.screen_to_world(mouse.position);
+            self.scale *= scale_change;
+            let mouse_world_after = self.screen_to_world(mouse.position);
+
+            // Move the camera so the world point under the mouse stays under the cursor
+            let correction = (mouse_world_after - mouse_world_before) * self.scale;
+            self.offset += correction;
+        }
     }
 }

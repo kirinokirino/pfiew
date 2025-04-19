@@ -230,6 +230,7 @@ impl Keyboard {
     }
 }
 
+#[derive(Clone)]
 pub struct Mouse {
     pub position: Vec2,
     grabbed: bool,

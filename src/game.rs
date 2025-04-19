@@ -30,8 +30,7 @@ pub struct Game {
     selected: usize,
     camera: Camera,
 
-    mouse: Vec2,
-    scroll_accumulated: f64,
+    mouse: Mouse,
 
     counter: usize,
 
@@ -65,8 +64,7 @@ impl Game {
             selected: 0,
             camera: Camera::new(),
 
-            mouse: Vec2::new(0.0, 0.0),
-            scroll_accumulated: 0.0,
+            mouse: Mouse::new(),
 
             counter: 0,
             viewport_size,
@@ -77,10 +75,10 @@ impl Game {
 
     pub fn input(&mut self, viewport_size: UVec2, mouse: &Mouse, keyboard: &Keyboard) {
         self.viewport_size = viewport_size;
-        let mouse_delta = mouse.position - self.mouse;
-        let scroll_delta = mouse.scroll_accumulated - self.scroll_accumulated;
-        self.mouse = mouse.position;
-        self.scroll_accumulated = mouse.scroll_accumulated;
+        let mouse_delta = mouse.position - self.mouse.position;
+        let scroll_delta = mouse.scroll_accumulated - self.mouse.scroll_accumulated;
+        self.mouse = mouse.clone(); 
+        
         self.camera.handle_input(mouse, &mouse_delta, scroll_delta, keyboard);
         if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
             self.selected += 1;
