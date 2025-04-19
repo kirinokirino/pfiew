@@ -10,6 +10,9 @@ use walkdir::WalkDir;
 use crate::app::{Keyboard, Mouse};
 use crate::config::Config;
 
+mod camera;
+use crate::game::camera::Camera;
+
 enum ImageStatus {
     Pending(PathBuf),
     Ready(ImageHandle),
@@ -25,10 +28,10 @@ pub struct Game {
     config: Config,
     images: Vec<ImageStatus>,
     selected: usize,
-    offset: Vec2,
-    scale: f32,
+    camera: Camera,
 
     mouse: Vec2,
+    scroll_accumulated: f64,
 
     counter: usize,
 
@@ -60,10 +63,10 @@ impl Game {
             config,
             images,
             selected: 0,
-            offset: Vec2::new(0.0, 0.0),
-            scale: 1.0,
+            camera: Camera::new(),
 
             mouse: Vec2::new(0.0, 0.0),
+            scroll_accumulated: 0.0,
 
             counter: 0,
             viewport_size,
@@ -75,11 +78,10 @@ impl Game {
     pub fn input(&mut self, viewport_size: UVec2, mouse: &Mouse, keyboard: &Keyboard) {
         self.viewport_size = viewport_size;
         let mouse_delta = mouse.position - self.mouse;
+        let scroll_delta = mouse.scroll_accumulated - self.scroll_accumulated;
         self.mouse = mouse.position;
-        if mouse.pressed.contains(&MouseButton::Left) {
-            self.offset += mouse_delta;
-        }
-        self.scale = calculate_scale(mouse.scroll_lines);
+        self.scroll_accumulated = mouse.scroll_accumulated;
+        self.camera.handle_input(mouse, &mouse_delta, scroll_delta, keyboard);
         if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
             self.selected += 1;
             println!("Selecting image {}", self.selected);
@@ -117,29 +119,11 @@ impl Game {
                 ImageStatus::Pending(path_buf) => (),
                 ImageStatus::Ready(image_handle) => {
                     //graphics.draw_image(self.offset, image_handle);
-                    let pos = self.offset;
                     let size = image_handle.size();
-                    let scaled = Vec2::new(size.x as f32 * self.scale, size.y as f32 * self.scale);
-                    graphics.draw_rectangle_image(Rect::new(pos, scaled + pos), image_handle);
+                    let bounds = Rect::new(Vec2::ZERO, Vec2::new(size.x as f32, size.y as f32));
+                    graphics.draw_rectangle_image(self.camera.transform(&bounds), image_handle);
                 }
             };
         }
     }
-}
-
-fn calculate_scale(mut scroll_lines: f64) -> f32 {
-    let zoom_speed = 0.95;
-    let mut value = 1.0;
-    if scroll_lines > 0.0 {
-        while scroll_lines > 0.5 {
-            value *= zoom_speed;
-            scroll_lines -= 1.0;
-        }
-    } else if scroll_lines < 0.0 {
-        while scroll_lines < -0.5 {
-            value /= zoom_speed;
-            scroll_lines += 1.0;
-        }
-    }
-    value
 }

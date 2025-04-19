@@ -141,7 +141,7 @@ impl WindowHandler for App {
                     eprintln!("Unsupported input: MouseScroll on Z coordinate!");
                 }
                 if y != 0.0 {
-                    self.mouse.scroll_lines += y;
+                    self.mouse.scroll_accumulated += y;
                 }
             }
             other => eprintln!("Unsupported input: {other:?}"),
@@ -234,7 +234,7 @@ pub struct Mouse {
     pub position: Vec2,
     grabbed: bool,
     pub pressed: Vec<MouseButton>,
-    pub scroll_lines: f64,
+    pub scroll_accumulated: f64,
 }
 
 impl Mouse {
@@ -243,7 +243,7 @@ impl Mouse {
             position: Vec2::ZERO,
             grabbed: false,
             pressed: Vec::new(),
-            scroll_lines: 0.0,
+            scroll_accumulated: 0.0,
         }
     }
 
