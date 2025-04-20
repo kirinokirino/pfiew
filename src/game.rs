@@ -14,13 +14,13 @@ use crate::game::camera::Camera;
 mod world;
 use crate::game::world::{EntityId, World};
 
-mod loader;
-use crate::game::loader::Loader;
+mod task_manager;
+use crate::game::task_manager::TaskManager;
 
 pub struct Game {
     config: Config,
     world: World,
-    loader: Loader,
+    loader: TaskManager,
 
     selected: usize,
     camera: Camera,
@@ -56,7 +56,7 @@ impl Game {
         Self {
             config,
             world,
-            loader: Loader::new(),
+            loader: TaskManager::new(),
             selected: 0,
             camera: Camera::new(),
 
