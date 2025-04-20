@@ -21,11 +21,15 @@ mod game;
 fn main() {
     let mut config = Config::new("config.ini");
     let args: Vec<String> = args().skip(1).collect();
-    if !args.is_empty() {
+    if args.is_empty() {
+        config.input = "./".to_string();
+    } else {
         let arg = &args[0];
         if arg.contains("--input=") {
             let (_before, after) = arg.split_once("--input=").unwrap();
             after.clone_into(&mut config.input);
+        } else {
+            config.input = arg.to_string();
         }
     }
 

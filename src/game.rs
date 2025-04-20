@@ -30,6 +30,21 @@ pub struct Game {
 
 impl Game {
     pub fn new(config: Config) -> Self {
+        let supported_extensions = vec![
+            "png",
+            "jpg", "jpeg",
+            "gif",
+            "bmp",
+            "ico",
+            "tiff", "tif",
+            "webp",
+            "avif",
+            "pbm", "pgm", "ppm", "pnm",
+            "dds",
+            "tga",
+            "ff", 
+        ];
+
         let mut world = World::new();
         let viewport_size = UVec2::new(config.window_width, config.window_height);
         let paths: Vec<&str> = vec![&config.input];
@@ -45,11 +60,20 @@ impl Game {
                 .filter_map(Result::ok)
             {
                 if entry.file_type().is_file() {
-                    count += 1;
-                    world.spawn_asset(entry.into_path());
+                    if let Some(ext) = entry.path().extension() {
+                        if supported_extensions.contains(&ext.to_string_lossy().as_ref()) {
+                            count += 1;
+                            world.spawn_asset(entry.into_path());
+                        }
+                    }
                 }
             }
             println!("{count} assets.");
+        }
+
+        if world.len() == 0 {
+            println!("No images to display, exiting");
+            std::process::exit(0);
         }
 
         Self {
@@ -86,6 +110,10 @@ impl Game {
         if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
             if self.selected == 0 {
                 self.selected = self.world.len();
+            }
+            // no images in folder
+            if self.selected == 0 {
+                return
             }
             self.selected -= 1;
             println!("Selecting image {}", self.selected);
