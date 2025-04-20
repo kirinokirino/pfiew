@@ -1,19 +1,29 @@
-use std::io::Cursor;
-use std::thread;
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
-use crossbeam_channel::{unbounded, Sender, Receiver};
+use std::sync::Arc;
+use std::thread;
 
-use speedy2d::{Graphics2D, image::{ImageDataType, ImageFileFormat, ImageSmoothingMode}};
+use crossbeam_channel::{unbounded, Receiver, Sender};
+use glam::UVec2;
+use image::ImageReader;
+
 use crate::game::world::{EntityId, World};
+use speedy2d::{
+    image::{ImageDataType, ImageSmoothingMode},
+    Graphics2D,
+};
 
 enum Task {
     Load { id: EntityId, path: PathBuf },
 }
 
 enum TaskResult {
-    Loaded { id: EntityId, bytes: Vec<u8> },
+    DecodedImage {
+        id: EntityId,
+        bytes: Vec<u8>,
+        width: u32,
+        height: u32,
+    },
 }
 
 pub struct TaskManager {
@@ -27,20 +37,44 @@ impl TaskManager {
         let (task_sender, task_receiver) = unbounded::<Task>();
         let (result_sender, result_receiver) = unbounded::<TaskResult>();
 
-        // Spawn loader thread
-        thread::spawn(move || {
-            while let Ok(task) = task_receiver.recv() {
-                match task {
-                    Task::Load { id, path } => {
-                        if let Ok(bytes) = std::fs::read(&path) {
-                            let _ = result_sender.send(TaskResult::Loaded { id, bytes });
-                        } else {
-                            eprintln!("Failed to load image: {:?}", path);
+        let task_receiver = Arc::new(task_receiver);
+        let result_sender = Arc::new(result_sender);
+
+        let thread_count = 1; // or however many you want
+        for _ in 0..thread_count {
+            let task_receiver = Arc::clone(&task_receiver);
+            let result_sender = Arc::clone(&result_sender);
+
+            thread::spawn(move || {
+                while let Ok(task) = task_receiver.recv() {
+                    match task {
+                        Task::Load { id, path } => {
+                            if let Ok(reader) = ImageReader::open(&path) {
+                                let image = reader.decode();
+                                match image {
+                                    Ok(image) => {
+                                        // Convert to raw RGBA bytes
+                                        let rgba = image.to_rgba8();
+                                        let (width, height) = rgba.dimensions();
+                                        let bytes = rgba.into_raw();
+
+                                        let _ = result_sender.send(TaskResult::DecodedImage {
+                                            id,
+                                            bytes,
+                                            width,
+                                            height,
+                                        });
+                                    }
+                                    Err(err) => {
+                                        eprintln!("Failed to decode image: {err}");
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
 
         Self {
             sender: task_sender,
@@ -60,13 +94,19 @@ impl TaskManager {
     pub fn update(&mut self, world: &mut World, graphics: &mut Graphics2D) {
         while let Ok(result) = self.result_receiver.try_recv() {
             match result {
-                TaskResult::Loaded { id, bytes } => {
-                    if let Ok(handle) = graphics.create_image_from_file_bytes(
-                        None, // or auto-detect if you prefer
+                TaskResult::DecodedImage {
+                    id,
+                    bytes,
+                    width,
+                    height,
+                } => {
+                    if let Ok(image) = graphics.create_image_from_raw_pixels(
+                        ImageDataType::RGBA,
                         ImageSmoothingMode::Linear,
-                        Cursor::new(bytes),
+                        UVec2::new(width, height),
+                        &bytes,
                     ) {
-                        world.insert_image(id, handle);
+                        world.insert_image(id, image);
                     }
                     self.queue.retain(|queued_id| *queued_id != id);
                 }
