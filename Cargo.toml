@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 configparser = "3.1"
+crossbeam-channel = "0.5.15"
 fastrand = "2.1"
 glam = "0.29"
 lazy_static = "1.5.0"

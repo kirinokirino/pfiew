@@ -20,7 +20,7 @@ use crate::game::task_manager::TaskManager;
 pub struct Game {
     config: Config,
     world: World,
-    loader: TaskManager,
+    task_manager: TaskManager,
 
     selected: usize,
     camera: Camera,
@@ -56,7 +56,7 @@ impl Game {
         Self {
             config,
             world,
-            loader: TaskManager::new(),
+            task_manager: TaskManager::new(),
             selected: 0,
             camera: Camera::new(),
 
@@ -88,10 +88,21 @@ impl Game {
 
     pub fn update(&mut self, graphics: &mut Graphics2D, current_frame: u64) {
         if self.world.get_image(self.selected).is_none() {
-            self.loader.load(self.selected);
+            if let Some(path) = self.world.get_path(self.selected) {
+                self.task_manager.load(self.selected, path.to_path_buf());
+            }
+        }
+        let next_selected = self.selected + 1;
+        if self.task_manager.is_idle() && next_selected < self.world.len() {
+            if self.world.get_image(next_selected).is_none() {
+                if let Some(path) = self.world.get_path(next_selected) {
+                    println!("Trying to load {}: {}", next_selected, path.display());
+                    self.task_manager.load(next_selected, path.to_path_buf());
+                }
+            }
         }
 
-        self.loader.update(&mut self.world, graphics);
+        self.task_manager.update(&mut self.world, graphics);
     }
 
     pub fn draw(&self, graphics: &mut Graphics2D) {
