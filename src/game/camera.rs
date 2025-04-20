@@ -11,7 +11,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             offset: Vec2::ZERO,
             scale: 1.0,
@@ -45,12 +45,12 @@ impl Camera {
     pub fn handle_input(
         &mut self,
         mouse: &Mouse,
-        mouse_delta: &Vec2,
+        mouse_delta: Vec2,
         scroll_delta: f64,
         _keyboard: &Keyboard,
     ) {
         if mouse.pressed.contains(&MouseButton::Left) {
-            self.offset += *mouse_delta;
+            self.offset += mouse_delta;
         }
 
         let scale_change = Self::calculate_scale(scroll_delta);

@@ -11,7 +11,7 @@ pub struct World {
 }
 
 impl World {
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         self.next_id
     }
 

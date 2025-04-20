@@ -80,12 +80,12 @@ impl App {
 
 impl WindowHandler for App {
     fn on_start(&mut self, _helper: &mut WindowHelper<()>, info: WindowStartupInfo) {
-        println!("{:?}", info.viewport_size_pixels());
+        println!("Resolution: {:?}", info.viewport_size_pixels());
         self.viewport_size = *info.viewport_size_pixels();
     }
 
     fn on_resize(&mut self, _helper: &mut WindowHelper<()>, size_pixels: UVec2) {
-        println!("new size: {size_pixels:?}");
+        println!("New resolution: {size_pixels:?}");
         self.viewport_size = size_pixels;
     }
 

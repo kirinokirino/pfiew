@@ -14,7 +14,7 @@ use speedy2d::{
 };
 
 enum Task {
-    Load { id: EntityId, path: PathBuf },
+    LoadImage { id: EntityId, path: PathBuf },
 }
 
 enum TaskResult {
@@ -27,20 +27,21 @@ enum TaskResult {
 }
 
 pub struct TaskManager {
+    thread_count: u8,
+
     sender: Sender<Task>,
     result_receiver: Receiver<TaskResult>,
     queue: VecDeque<EntityId>,
 }
 
 impl TaskManager {
-    pub fn new() -> Self {
+    pub fn new(thread_count: u8) -> Self {
         let (task_sender, task_receiver) = unbounded::<Task>();
         let (result_sender, result_receiver) = unbounded::<TaskResult>();
 
         let task_receiver = Arc::new(task_receiver);
         let result_sender = Arc::new(result_sender);
 
-        let thread_count = 1; // or however many you want
         for _ in 0..thread_count {
             let task_receiver = Arc::clone(&task_receiver);
             let result_sender = Arc::clone(&result_sender);
@@ -48,7 +49,7 @@ impl TaskManager {
             thread::spawn(move || {
                 while let Ok(task) = task_receiver.recv() {
                     match task {
-                        Task::Load { id, path } => {
+                        Task::LoadImage { id, path } => {
                             if let Ok(reader) = ImageReader::open(&path) {
                                 let image = reader.decode();
                                 match image {
@@ -77,6 +78,7 @@ impl TaskManager {
         }
 
         Self {
+            thread_count,
             sender: task_sender,
             result_receiver,
             queue: VecDeque::new(),
@@ -87,7 +89,7 @@ impl TaskManager {
         if self.queue.contains(&id) {
             return;
         }
-        let _ = self.sender.send(Task::Load { id, path });
+        let _ = self.sender.send(Task::LoadImage { id, path });
         self.queue.push_back(id);
     }
 
@@ -116,5 +118,9 @@ impl TaskManager {
 
     pub fn is_idle(&self) -> bool {
         self.queue.is_empty()
+    }
+
+    pub const fn threads(&self) -> u8 {
+        self.thread_count
     }
 }

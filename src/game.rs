@@ -1,8 +1,6 @@
-use speedy2d::image::ImageSmoothingMode;
+use glam::{UVec2, Vec2};
 use speedy2d::window::VirtualKeyCode;
 use speedy2d::{Graphics2D, Rect};
-
-use glam::{UVec2, Vec2};
 use walkdir::WalkDir;
 
 use crate::app::{Keyboard, Mouse};
@@ -12,7 +10,7 @@ mod camera;
 use crate::game::camera::Camera;
 
 mod world;
-use crate::game::world::{EntityId, World};
+use crate::game::world::World;
 
 mod task_manager;
 use crate::game::task_manager::TaskManager;
@@ -24,11 +22,9 @@ pub struct Game {
 
     selected: usize,
     camera: Camera,
-
     mouse: Mouse,
 
     counter: usize,
-
     viewport_size: UVec2,
 }
 
@@ -37,26 +33,29 @@ impl Game {
         let mut world = World::new();
         let viewport_size = UVec2::new(config.window_width, config.window_height);
         let paths: Vec<&str> = vec![&config.input];
-        println!("Reading {} paths", paths.len());
+        println!("Reading {} asset paths:", paths.len());
         for path in paths {
-            println!("{path}");
+            let mut count = 0;
+            print!("In {path}: ");
             for entry in WalkDir::new(path)
                 .follow_links(true)
                 .max_depth(1)
                 .sort_by_file_name()
                 .into_iter()
-                .filter_map(|e| e.ok())
+                .filter_map(Result::ok)
             {
                 if entry.file_type().is_file() {
+                    count += 1;
                     world.spawn_asset(entry.into_path());
                 }
             }
+            println!("{count} assets.");
         }
 
         Self {
             config,
             world,
-            task_manager: TaskManager::new(),
+            task_manager: TaskManager::new(4),
             selected: 0,
             camera: Camera::new(),
 
@@ -67,7 +66,7 @@ impl Game {
         }
     }
 
-    pub fn setup(&mut self, graphics: &mut Graphics2D) {}
+    pub fn setup(&mut self, _graphics: &mut Graphics2D) {}
 
     pub fn input(&mut self, viewport_size: UVec2, mouse: &Mouse, keyboard: &Keyboard) {
         self.viewport_size = viewport_size;
@@ -76,29 +75,60 @@ impl Game {
         self.mouse = mouse.clone();
 
         self.camera
-            .handle_input(mouse, &mouse_delta, scroll_delta, keyboard);
-        if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
+            .handle_input(mouse, mouse_delta, scroll_delta, keyboard);
+        if keyboard.just_pressed.contains(&VirtualKeyCode::E) {
             self.selected += 1;
             if self.selected >= self.world.len() {
                 self.selected = 0;
             }
             println!("Selecting image {}", self.selected);
         }
+        if keyboard.just_pressed.contains(&VirtualKeyCode::Q) {
+            if self.selected == 0 {
+                self.selected = self.world.len();
+            }
+            self.selected -= 1;
+            println!("Selecting image {}", self.selected);
+        }
     }
 
-    pub fn update(&mut self, graphics: &mut Graphics2D, current_frame: u64) {
+    pub fn update(&mut self, graphics: &mut Graphics2D, _current_frame: u64) {
+        let mut preload_ids = vec![self.selected];
+
+        if self.selected > 0 {
+            preload_ids.push(self.selected - 1);
+        }
+        if self.selected + 1 < self.world.len() {
+            preload_ids.push(self.selected + 1);
+        }
+        if self.selected + 2 < self.world.len() {
+            preload_ids.push(self.selected + 2);
+        }
+
+        // Request loading if needed
+        for id in preload_ids {
+            if self.world.get_image(id).is_none() {
+                if let Some(path) = self.world.get_path(id) {
+                    self.task_manager.load(id, path.clone());
+                }
+            }
+        }
+
+        // Apply completed tasks
+        self.task_manager.update(&mut self.world, graphics);
+
         if self.world.get_image(self.selected).is_none() {
             if let Some(path) = self.world.get_path(self.selected) {
-                self.task_manager.load(self.selected, path.to_path_buf());
+                self.task_manager.load(self.selected, path.clone());
             }
         }
         let next_selected = self.selected + 1;
-        if self.task_manager.is_idle() && next_selected < self.world.len() {
-            if self.world.get_image(next_selected).is_none() {
-                if let Some(path) = self.world.get_path(next_selected) {
-                    println!("Trying to load {}: {}", next_selected, path.display());
-                    self.task_manager.load(next_selected, path.to_path_buf());
-                }
+        if self.task_manager.is_idle()
+            && next_selected < self.world.len()
+            && self.world.get_image(next_selected).is_none()
+        {
+            if let Some(path) = self.world.get_path(next_selected) {
+                self.task_manager.load(next_selected, path.clone());
             }
         }
 
