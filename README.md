@@ -1,4 +1,5 @@
-## On a path to making a game template based on Speedy2D.
+## pfiew
 
-just draws a line from the center to the mouse cursor.
+Minimalistic image viewer made to use from [kranger](https://github.com/kirinokirino/kranger).
 
+Hold left mouse button to pan around, scroll to zoom, <- "q" and "e" -> to view previous and next image in the folder.
