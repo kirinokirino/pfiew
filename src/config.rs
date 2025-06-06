@@ -59,7 +59,7 @@ impl Default for Config {
         Self {
             path: None,
             input: "assets/folder".to_string(),
-            title: "FLOATING".to_string(),
+            title: "pfiew".to_string(),
             sleep_ms_per_frame: 5,
             window_width: 640,
             window_height: 640,

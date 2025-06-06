@@ -1,6 +1,6 @@
 use glam::{UVec2, Vec2};
 use speedy2d::window::VirtualKeyCode;
-use speedy2d::{Graphics2D, Rect};
+use speedy2d::{color::Color, Graphics2D, Rect};
 use walkdir::WalkDir;
 
 use crate::app::{Keyboard, Mouse};
@@ -26,23 +26,14 @@ pub struct Game {
 
     counter: usize,
     viewport_size: UVec2,
+    inverted: bool,
 }
 
 impl Game {
     pub fn new(config: Config) -> Self {
         let supported_extensions = vec![
-            "png",
-            "jpg", "jpeg",
-            "gif",
-            "bmp",
-            "ico",
-            "tiff", "tif",
-            "webp",
-            "avif",
-            "pbm", "pgm", "ppm", "pnm",
-            "dds",
-            "tga",
-            "ff", 
+            "png", "jpg", "jpeg", "gif", "bmp", "ico", "tiff", "tif", "webp", "avif", "pbm", "pgm",
+            "ppm", "pnm", "dds", "tga", "ff",
         ];
 
         let mut world = World::new();
@@ -87,6 +78,7 @@ impl Game {
 
             counter: 0,
             viewport_size,
+            inverted: false,
         }
     }
 
@@ -113,10 +105,14 @@ impl Game {
             }
             // no images in folder
             if self.selected == 0 {
-                return
+                return;
             }
             self.selected -= 1;
             println!("Selecting image {}", self.selected);
+        }
+        if keyboard.just_pressed.contains(&VirtualKeyCode::R) {
+            self.inverted = !self.inverted;
+            println!("Inverted: {}", self.inverted);
         }
     }
 
@@ -175,7 +171,17 @@ impl Game {
         if let Some(image_handle) = &self.world.get_image(self.selected) {
             let size = image_handle.size();
             let bounds = Rect::new(Vec2::ZERO, Vec2::new(size.x as f32, size.y as f32));
-            graphics.draw_rectangle_image(self.camera.transform(&bounds), image_handle);
+
+            if self.inverted {
+                // TODO: atm its making the image less bright instead. 
+                graphics.draw_rectangle_image_tinted(
+                    self.camera.transform(&bounds),
+                    Color::from_gray(0.5),
+                    image_handle,
+                );
+            } else {
+                graphics.draw_rectangle_image(self.camera.transform(&bounds), image_handle);
+            }
         };
     }
 }
